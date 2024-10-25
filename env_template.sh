@@ -3,29 +3,28 @@
 set -o nounset
 
 # Set this to your cloudlab username.
-cloudlab_user="molivi3"
+cloudlab_user=
 
 # Set these by looking at the details of the nodes of your cloudlab
 # experiment.
-readonly master_public_ip="128.105.144.116"
-readonly master_private_ip="10.10.1.1"
+readonly master_public_ip=
 
 # Adjust to the number of worker nodes that you want in your cluster
 # (and that you have provisioned in your cloudlab experiment).
-readonly num_workers=2
+readonly num_workers=
 
 # Set these by looking at the details of the nodes of your cloudlab
 # experiment. If you need more or less workers, simply add/remove
 # the corresponding lines.
-readonly worker_1_public_ip="128.105.144.129"
-readonly worker_2_public_ip="128.105.144.125"
+readonly worker_1_public_ip=
+# readonly worker_2_public_ip=
 # readonly worker_3_public_ip=
 # readonly worker_4_public_ip=
 
 # The relative or absolute paths of the dir holding the patch to
 # the kubelet configs on workers. Said path will be passed to the
 # "--patches" flag of kubeadm join.
-readonly worker_1_cfg_patch_dir="foo"
+# readonly worker_1_cfg_patch_dir=
 # readonly worker_2_cfg_patch_dir
 # readonly worker_3_cfg_patch_dir
 # readonly worker_4_cfg_patch_dir
