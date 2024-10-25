@@ -5,7 +5,6 @@
 #! c240g5, with Ubuntu 20.04 or 22.04. It has no ambition of supporting use cases
 #! other than mine, or of running on HW/OS different than the aforementioned one.
 
-# todo: copy kubectl here.
 # todo: add custom kubelet configs.
 # todo: support using custom binaries for k8s components (e.g. the Kubelet), as we'll need
 # to build and run our modified kubelet.
@@ -41,6 +40,7 @@ echo From now on you don't need to pay attention to what it's doing.
 if [[ $skip_master -eq "0" ]]; then
     echo Creating K8s master node.
     ssh $cloudlab_user@$master_public_ip "./create_k8s_master_node.sh"
+    scp $cloudlab_user@$master_public_ip:.kube/config kubecfg
 fi
 
 # Get the token and cert for workers to join the cluster. 
@@ -67,4 +67,4 @@ else
     echo "Creation of the workers with the following indexes failed: ${failed_workers[@]}"
     echo "All the other workers have been created successfully." 
 fi
-echo "ssh on the master and use kubectl to interact with it."
+echo "To interact with the cluster, run export 'KUBECONFIG=`pwd`/kubecfg' first, and then start using kubectl"
