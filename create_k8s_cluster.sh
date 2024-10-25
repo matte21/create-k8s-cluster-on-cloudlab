@@ -7,6 +7,8 @@
 
 # todo: copy kubectl here.
 # todo: add custom kubelet configs.
+# todo: support using custom binaries for k8s components (e.g. the Kubelet), as we'll need
+# to build and run our modified kubelet.
 
 set -o errexit
 set -o nounset
@@ -14,10 +16,17 @@ set -o pipefail
 
 source ./env.sh
 
-echo "Copying scripts to master node"
-scp "env.sh" "$cloudlab_user@$master_public_ip:env.sh"
-scp "cfg_k8s_generic_node.sh" "$cloudlab_user@$master_public_ip:cfg_k8s_generic_node.sh"
-scp "create_k8s_master_node.sh" "$cloudlab_user@$master_public_ip:create_k8s_master_node.sh"
+skip_master=0
+if [[ "${1:-}" == "--skip-master" ]]; then
+    skip_master=1    
+fi
+
+if [[ $skip_master -eq "0" ]]; then
+    echo "Copying scripts to master node"
+    scp "env.sh" "$cloudlab_user@$master_public_ip:env.sh"
+    scp "cfg_k8s_generic_node.sh" "$cloudlab_user@$master_public_ip:cfg_k8s_generic_node.sh"
+    scp "create_k8s_master_node.sh" "$cloudlab_user@$master_public_ip:create_k8s_master_node.sh"
+fi
 
 echo "Copying scripts to worker nodes"
 while read -r worker_ip; do
@@ -29,12 +38,14 @@ done <<< "$(compgen -A variable | grep 'worker_[0-9]\+_public_ip')"
 echo The interactive part of the script is over.
 echo From now on you don't need to pay attention to what it's doing.
 
-echo Creating K8s master node.
-ssh $cloudlab_user@$master_public_ip "./create_k8s_master_node.sh"
+if [[ $skip_master -eq "0" ]]; then
+    echo Creating K8s master node.
+    ssh $cloudlab_user@$master_public_ip "./create_k8s_master_node.sh"
+fi
 
 # Get the token and cert for workers to join the cluster. 
-readonly token=$(ssh root@$master_public_ip "kubeadm token create")
-readonly ca_cert_hash=$(ssh root@$master_public_ip "cat /etc/kubernetes/pki/ca.crt | openssl x509 -pubkey  | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'")
+readonly token=$(ssh $cloudlab_user@$master_public_ip "sudo kubeadm token create")
+readonly ca_cert_hash=$(ssh $cloudlab_user@$master_public_ip "sudo cat /etc/kubernetes/pki/ca.crt | openssl x509 -pubkey  | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'")
 
 echo Creating K8s worker nodes
 pids=()
