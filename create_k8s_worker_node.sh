@@ -5,12 +5,14 @@ set -o nounset
 set -o pipefail
 
 if [[ -z "${1:-}" || -z "${2:-}" ]]; then
-  echo "Usage: $0 <k8s master ip in 10.10.1/24> <k8s master ip in 128.105.146/22>"
-  echo "Please provide both K8s master IPs when invoking the script."
+  echo "Usage: $0 <kubeadm join token> <kubeadm join ca cert hash>"
+  echo "Please provide mandatory arguments for kubeadm join token and ca cert hash."
   exit 1
 fi
-readonly k8s_ssh_master_ip="$1"
-readonly k8s_join_master_ip="$2"
+readonly token="$1"
+readonly ca_cert_hash="$2"
+
+source ./env.sh
 
 # Offline the CPUs in the NUMA node with highest ID to mimic a CPU-less NUMA node.
 # Note: the current kubelet implementation breaks completely if the CPU-less NUMA node isn't the one
@@ -22,8 +24,7 @@ readonly k8s_join_master_ip="$2"
 
 ./cfg_k8s_generic_node.sh
 
-# Get the token and cert hash to join the cluster.
-readonly token=$(sudo ssh root@$k8s_ssh_master_ip "kubeadm token create")
-readonly ca_cert_hash=$(sudo ssh root@$k8s_ssh_master_ip "cat /etc/kubernetes/pki/ca.crt | openssl x509 -pubkey  | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'")
 #sudo kubeadm join $k8s_join_master_ip:6443 --token $token --discovery-token-ca-cert-hash sha256:$ca_cert_hash --patches klet-cfg-patches/
-sudo kubeadm join $k8s_join_master_ip:6443 --token $token --discovery-token-ca-cert-hash sha256:$ca_cert_hash
+sudo kubeadm join $master_public_ip:6443 \
+  --token $token \
+  --discovery-token-ca-cert-hash sha256:$ca_cert_hash
