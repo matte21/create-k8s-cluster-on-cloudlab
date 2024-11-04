@@ -30,7 +30,9 @@ fi
 readonly token=$(ssh $cloudlab_user@$master_public_ip "sudo kubeadm token create")
 readonly ca_cert_hash=$(ssh $cloudlab_user@$master_public_ip "sudo cat /etc/kubernetes/pki/ca.crt | openssl x509 -pubkey  | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'")
 
-pids=()
+declare -A pid_to_worker_id
+# Note: worker_ip doesn't store the worker ip, but the name of the variable that stores
+# the worker ip. Think of it like a pointer.
 while read -r worker_ip; do
     echo Copying scripts to worker node.
     scp -o StrictHostKeyChecking=no "env.sh" "$cloudlab_user@${!worker_ip}:env.sh"
@@ -39,13 +41,13 @@ while read -r worker_ip; do
 
     echo Creating worker node.
     ssh "$cloudlab_user@${!worker_ip}" "./create_k8s_worker_node.sh $token $ca_cert_hash" &
-    pids+=($!)
+    pid_to_worker_id["$!"]=$(echo $worker_ip | cut -d '_' -f 2)
 done <<< "$(compgen -A variable | grep 'worker_[0-9]\+_public_ip')"
 
 failed_workers=()
-for i in "${!pids[@]}"; do
-    if ! wait "${pids[i]}"; then
-        failed_workers+=($((i + 1)))
+for pid in "${!pid_to_worker_id[@]}"; do
+    if ! wait "$pid"; then
+        failed_workers+=(${pid_to_worker_id[$pid]})
     fi
 done
 
