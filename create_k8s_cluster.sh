@@ -22,14 +22,14 @@ fi
 
 if [[ $skip_master -eq "0" ]]; then
     echo "Copying scripts to master node"
-    scp "env.sh" "$cloudlab_user@$master_public_ip:env.sh"
+    scp -o StrictHostKeyChecking=no "env.sh" "$cloudlab_user@$master_public_ip:env.sh"
     scp "cfg_k8s_generic_node.sh" "$cloudlab_user@$master_public_ip:cfg_k8s_generic_node.sh"
     scp "create_k8s_master_node.sh" "$cloudlab_user@$master_public_ip:create_k8s_master_node.sh"
 fi
 
 echo "Copying scripts to worker nodes"
 while read -r worker_ip; do
-    scp "env.sh" "$cloudlab_user@${!worker_ip}:env.sh"
+    scp -o StrictHostKeyChecking=no "env.sh" "$cloudlab_user@${!worker_ip}:env.sh"
     scp "cfg_k8s_generic_node.sh" "$cloudlab_user@${!worker_ip}:cfg_k8s_generic_node.sh"
     scp "create_k8s_worker_node.sh" "$cloudlab_user@${!worker_ip}:create_k8s_worker_node.sh"
 done <<< "$(compgen -A variable | grep 'worker_[0-9]\+_public_ip')"
