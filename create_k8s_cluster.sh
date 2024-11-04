@@ -15,30 +15,13 @@ set -o pipefail
 
 source ./env.sh
 
-skip_master=0
-if [[ "${1:-}" == "--skip-master" ]]; then
-    skip_master=1    
-fi
-
-if [[ $skip_master -eq "0" ]]; then
-    echo "Copying scripts to master node"
+if [[ "${1:-}" != "--skip-master" ]]; then
+    echo Copying scripts to master node.
     scp -o StrictHostKeyChecking=no "env.sh" "$cloudlab_user@$master_public_ip:env.sh"
     scp "cfg_k8s_generic_node.sh" "$cloudlab_user@$master_public_ip:cfg_k8s_generic_node.sh"
     scp "create_k8s_master_node.sh" "$cloudlab_user@$master_public_ip:create_k8s_master_node.sh"
-fi
 
-echo "Copying scripts to worker nodes"
-while read -r worker_ip; do
-    scp -o StrictHostKeyChecking=no "env.sh" "$cloudlab_user@${!worker_ip}:env.sh"
-    scp "cfg_k8s_generic_node.sh" "$cloudlab_user@${!worker_ip}:cfg_k8s_generic_node.sh"
-    scp "create_k8s_worker_node.sh" "$cloudlab_user@${!worker_ip}:create_k8s_worker_node.sh"
-done <<< "$(compgen -A variable | grep 'worker_[0-9]\+_public_ip')"
-
-echo The interactive part of the script is over.
-echo From now on you don't need to pay attention to what it's doing.
-
-if [[ $skip_master -eq "0" ]]; then
-    echo Creating K8s master node.
+    echo Creating master node.
     ssh $cloudlab_user@$master_public_ip "./create_k8s_master_node.sh"
     scp $cloudlab_user@$master_public_ip:.kube/config kubecfg
 fi
@@ -47,9 +30,14 @@ fi
 readonly token=$(ssh $cloudlab_user@$master_public_ip "sudo kubeadm token create")
 readonly ca_cert_hash=$(ssh $cloudlab_user@$master_public_ip "sudo cat /etc/kubernetes/pki/ca.crt | openssl x509 -pubkey  | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'")
 
-echo Creating K8s worker nodes
 pids=()
 while read -r worker_ip; do
+    echo Copying scripts to worker node.
+    scp -o StrictHostKeyChecking=no "env.sh" "$cloudlab_user@${!worker_ip}:env.sh"
+    scp "cfg_k8s_generic_node.sh" "$cloudlab_user@${!worker_ip}:cfg_k8s_generic_node.sh"
+    scp "create_k8s_worker_node.sh" "$cloudlab_user@${!worker_ip}:create_k8s_worker_node.sh"
+
+    echo Creating worker node.
     ssh "$cloudlab_user@${!worker_ip}" "./create_k8s_worker_node.sh $token $ca_cert_hash" &
     pids+=($!)
 done <<< "$(compgen -A variable | grep 'worker_[0-9]\+_public_ip')"
@@ -67,4 +55,4 @@ else
     echo "Creation of the workers with the following indexes failed: ${failed_workers[@]}"
     echo "All the other workers have been created successfully." 
 fi
-echo "To interact with the cluster, run export 'KUBECONFIG=`pwd`/kubecfg' first, and then start using kubectl"
+echo "To interact with the cluster, run export 'KUBECONFIG=`pwd`/kubecfg' first, and then start using kubectl."
