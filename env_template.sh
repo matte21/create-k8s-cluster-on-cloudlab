@@ -21,14 +21,6 @@ readonly worker_1_public_ip=
 # readonly worker_3_public_ip=
 # readonly worker_4_public_ip=
 
-# The relative or absolute paths of the dir holding the patch to
-# the kubelet configs on workers. Said path will be passed to the
-# "--patches" flag of kubeadm join.
-# readonly worker_1_cfg_patch_dir=
-# readonly worker_2_cfg_patch_dir
-# readonly worker_3_cfg_patch_dir
-# readonly worker_4_cfg_patch_dir
-
 # Versions of dependencies to install. We lock them for reproducibility, but know that
 # you might have to change some of them if you use a different Ubuntu version, because
 # each Ubuntu version might have a different set of versions available for a given apt

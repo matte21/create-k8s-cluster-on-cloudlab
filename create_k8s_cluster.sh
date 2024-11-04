@@ -5,7 +5,6 @@
 #! c240g5, with Ubuntu 20.04 or 22.04. It has no ambition of supporting use cases
 #! other than mine, or of running on HW/OS different than the aforementioned one.
 
-# todo: add custom kubelet configs.
 # todo: support using custom binaries for k8s components (e.g. the Kubelet), as we'll need
 # to build and run our modified kubelet.
 
@@ -30,6 +29,7 @@ fi
 readonly token=$(ssh $cloudlab_user@$master_public_ip "sudo kubeadm token create")
 readonly ca_cert_hash=$(ssh $cloudlab_user@$master_public_ip "sudo cat /etc/kubernetes/pki/ca.crt | openssl x509 -pubkey  | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'")
 
+readonly cfg_patches_dir="cfg_patches"
 declare -A pid_to_worker_id
 # Note: worker_ip doesn't store the worker ip, but the name of the variable that stores
 # the worker ip. Think of it like a pointer.
@@ -38,10 +38,15 @@ while read -r worker_ip; do
     scp -o StrictHostKeyChecking=no "env.sh" "$cloudlab_user@${!worker_ip}:env.sh"
     scp "cfg_k8s_generic_node.sh" "$cloudlab_user@${!worker_ip}:cfg_k8s_generic_node.sh"
     scp "create_k8s_worker_node.sh" "$cloudlab_user@${!worker_ip}:create_k8s_worker_node.sh"
+    readonly worker_id=$(echo $worker_ip | cut -d '_' -f 2)
+    readonly worker_cfg_patches_folder="cfg_patches/worker_${worker_id}"
+    if [[ -d "$worker_cfg_patches_folder" ]]; then
+        scp -r "$worker_cfg_patches_folder" $cloudlab_user@${!worker_ip}:$cfg_patches_dir
+    fi
 
     echo Creating worker node.
-    ssh "$cloudlab_user@${!worker_ip}" "./create_k8s_worker_node.sh $token $ca_cert_hash" &
-    pid_to_worker_id["$!"]=$(echo $worker_ip | cut -d '_' -f 2)
+    ssh "$cloudlab_user@${!worker_ip}" "./create_k8s_worker_node.sh $token $ca_cert_hash $cfg_patches_dir" &
+    pid_to_worker_id["$!"]="$worker_id"
 done <<< "$(compgen -A variable | grep 'worker_[0-9]\+_public_ip')"
 
 failed_workers=()

@@ -5,12 +5,16 @@ set -o nounset
 set -o pipefail
 
 if [[ -z "${1:-}" || -z "${2:-}" ]]; then
-  echo "Usage: $0 <kubeadm join token> <kubeadm join ca cert hash>"
+  echo "Usage: $0 <kubeadm join token> <kubeadm join ca cert hash> [<cfg patches dir path>]"
   echo "Please provide mandatory arguments for kubeadm join token and ca cert hash."
   exit 1
 fi
 readonly token="$1"
 readonly ca_cert_hash="$2"
+cfg_patches_flag=""
+if [[ -n "${3:-}" && -d "$3" ]]; then
+  cfg_patches_flag="--patches $3"
+fi
 
 source ./env.sh
 
@@ -21,10 +25,11 @@ source ./env.sh
 # for cpu_to_offline in $(lscpu --online --parse | cut -d ',' -f1,4 | grep ",$((num_numas - 1))" | cut -d ',' -f1); do
 #   echo 0 | sudo tee /sys/devices/system/cpu/cpu${cpu_to_offline}/online
 # done
+# todo: set uncore frequency.
 
 ./cfg_k8s_generic_node.sh
 
-#sudo kubeadm join $k8s_join_master_ip:6443 --token $token --discovery-token-ca-cert-hash sha256:$ca_cert_hash --patches klet-cfg-patches/
 sudo kubeadm join $master_public_ip:6443 \
   --token $token \
-  --discovery-token-ca-cert-hash sha256:$ca_cert_hash
+  --discovery-token-ca-cert-hash sha256:$ca_cert_hash \
+  "$patches_flag"
