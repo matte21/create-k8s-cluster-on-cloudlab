@@ -15,14 +15,25 @@ readonly cfg_patches_dir="${3:-}"
 
 source ./env.sh
 
-# Offline the CPUs in the NUMA node with highest ID to mimic a CPU-less NUMA node.
-# Note: the current kubelet implementation breaks completely if the CPU-less NUMA node isn't the one
-# with the highest index. The index is the highest index is $num_numas - 1 because indexing starts at 0.
-# readonly num_numas=$(lscpu | grep "NUMA node(s):" | tr -s ' ' | cut -d ' ' -f 3)
-# for cpu_to_offline in $(lscpu --online --parse | cut -d ',' -f1,4 | grep ",$((num_numas - 1))" | cut -d ',' -f1); do
-#   echo 0 | sudo tee /sys/devices/system/cpu/cpu${cpu_to_offline}/online
-# done
-# todo: set uncore frequency.
+sudo apt-get update -y
+
+# Take the NUMA node with the highest index and make it mimic a CXL-attached
+# NUMA node by offlining all CPUs in it and lowering its uncore frequency
+# to mimic the increased access latency. We pick the NUMA node with the
+# highest index because the current kubelet implementation breaks completely
+# if the CPU-less NUMA node isn't the one with the highest index.
+readonly uncore_freq_register_nbr="0x620"
+readonly slow_numa_uncore_freq="0x707"
+readonly num_numas=$(lscpu | grep "NUMA node(s):" | tr -s ' ' | cut -d ' ' -f 3)
+readonly cpus_on_fake_cxl_numa=($(lscpu --online --parse | cut -d ',' -f1,4 | grep ",$((num_numas - 1))" | cut -d ',' -f1))
+sudo apt-get install -y msr-tools numactl pcm
+sudo modprobe msr
+# We set the value of register 0x620 only for one processor because the
+# register is the same for all processors in a NUMA Node.
+sudo wrmsr --processor $(echo "${cpus_on_fake_cxl_numa[0]}" | cut -d ' ' -f1) $uncore_freq_register_nbr $slow_numa_uncore_freq
+for cpu in "${cpus_on_fake_cxl_numa[@]}"; do
+  echo 0 | sudo tee /sys/devices/system/cpu/cpu${cpu}/online
+done
 
 ./cfg_k8s_generic_node.sh
 
