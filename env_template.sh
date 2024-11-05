@@ -9,10 +9,6 @@ cloudlab_user=
 # experiment.
 readonly master_public_ip=
 
-# Adjust to the number of worker nodes that you want in your cluster
-# (and that you have provisioned in your cloudlab experiment).
-readonly num_workers=
-
 # Set these by looking at the details of the nodes of your cloudlab
 # experiment. If you need more or less workers, simply add/remove
 # the corresponding lines.
