@@ -38,8 +38,8 @@ while read -r worker_ip; do
     scp -o StrictHostKeyChecking=no "env.sh" "$cloudlab_user@${!worker_ip}:env.sh"
     scp "cfg_k8s_generic_node.sh" "$cloudlab_user@${!worker_ip}:cfg_k8s_generic_node.sh"
     scp "create_k8s_worker_node.sh" "$cloudlab_user@${!worker_ip}:create_k8s_worker_node.sh"
-    readonly worker_id=$(echo $worker_ip | cut -d '_' -f 2)
-    readonly worker_cfg_patches_folder="cfg_patches/worker_${worker_id}"
+    worker_id=$(echo $worker_ip | cut -d '_' -f 2)
+    worker_cfg_patches_folder="cfg_patches/worker_${worker_id}"
     if [[ -d "$worker_cfg_patches_folder" ]]; then
         scp -r "$worker_cfg_patches_folder" $cloudlab_user@${!worker_ip}:$cfg_patches_dir
     fi

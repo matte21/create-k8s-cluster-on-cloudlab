@@ -32,4 +32,4 @@ source ./env.sh
 sudo kubeadm join $master_public_ip:6443 \
   --token $token \
   --discovery-token-ca-cert-hash sha256:$ca_cert_hash \
-  "$patches_flag"
+  "$cfg_patches_flag"
