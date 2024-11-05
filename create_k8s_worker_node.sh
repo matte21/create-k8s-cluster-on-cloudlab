@@ -11,10 +11,7 @@ if [[ -z "${1:-}" || -z "${2:-}" ]]; then
 fi
 readonly token="$1"
 readonly ca_cert_hash="$2"
-cfg_patches_flag=""
-if [[ -n "${3:-}" && -d "$3" ]]; then
-  cfg_patches_flag="--patches $3"
-fi
+readonly cfg_patches_dir="${3:-}"
 
 source ./env.sh
 
@@ -29,7 +26,13 @@ source ./env.sh
 
 ./cfg_k8s_generic_node.sh
 
-sudo kubeadm join $master_public_ip:6443 \
-  --token $token \
-  --discovery-token-ca-cert-hash sha256:$ca_cert_hash \
-  "$cfg_patches_flag"
+if [[ -n "$cfg_patches_dir" && -d "$cfg_patches_dir" ]]; then
+  sudo kubeadm join $master_public_ip:6443 \
+    --token $token \
+    --discovery-token-ca-cert-hash sha256:$ca_cert_hash \
+    --patches "$cfg_patches_dir"
+else
+  sudo kubeadm join $master_public_ip:6443 \
+    --token $token \
+    --discovery-token-ca-cert-hash sha256:$ca_cert_hash
+fi
