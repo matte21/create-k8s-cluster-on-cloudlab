@@ -43,3 +43,16 @@ With a proper `env.sh` in place, create the cluster by running:
 
 The process will take some minutes to complete.
 Stdout and stderr will inform you in case of errors or successful completion.
+
+## Custom Configuration of Worker Nodes
+
+You can customize the configuration of each worker node's kubelet via a patch file.
+To customize the configuration of worker _i_, create a folder `cfg_patches/worker_i/` and place the patch file under it. The format of the patch file is defined at [https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/control-plane-flags/#kubelet](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/control-plane-flags/#kubelet).
+
+Of course, you can customize the configuration of multiple worker nodes (and when doing so, you can configure each worker differently from the others). Just create one folder for each worker (e.g. `cfg_patches/worker_i/`, `cfg_patches/worker_j/`) and place the desired patch files under each folder.
+
+## Fake NUMA Node on Worker Nodes
+
+The scripts configure each worker node with a simulated CXL-attached NUMA node. The simulated NUMA node is created by offlining all CPUs on a real NUMA node and setting the uncore frequency for that NUMA node to a low value (to mimic the higher memory access latency).
+
+Currently there's no way to disable this configuration step. I might make it optional in the future.
